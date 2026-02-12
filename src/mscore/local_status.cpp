@@ -25,16 +25,28 @@ void LocalStatus::update() {
                 }
                 break;
             }
-            case lan::LanMessageUpdated::GuestInRoom: {
+            case lan::LanMessageUpdated::NewGuestInRoom: {
                 mGuestInfoList.clear();
-                const std::unordered_map<std::string, lan::GuestConnection>&
-                    guest_conn_list = mLanPeer.get_connected_guest_info_list();
-                for (const auto& gc : guest_conn_list) {
-                    mGuestInfoList.push_back(GuestInfo{
-                        .nickname = "guestnick",
-                        .ip = gc.second.guest_ip(),
-                        .signal_strength =
-                            static_cast<int>(gc.second.signal_strength()) + 1});
+                if (mGameStatus == GameStatus::RoomAsHost) {
+                    auto [nicknames, signal_strengths] =
+                        mLanPeer.get_connected_guest_info_list();
+                    size_t guest_count = nicknames.size();
+                    for (size_t i = 0; i < guest_count; i++)
+                        mGuestInfoList.push_back(
+                            GuestInfo{.nickname = nicknames[i],
+                                      .ip = "0.0.0.0",
+                                      .signal_strength = signal_strengths[i]});
+                } else if (mGameStatus == GameStatus::RoomAsGuest) {
+                    lan::packet::GuestsInRoomPacket girp =
+                        mLanPeer.get_pending_girp();
+                    for (size_t i = 0; i < girp.guest_count; i++)
+                        mGuestInfoList.push_back(GuestInfo{
+                            .nickname = girp.nicknames[i],
+                            .ip = "0.0.0.0",
+                            .signal_strength = static_cast<lan::SignalStrength>(
+                                girp.signal_strengths[i])});
+                } else {
+                    UNREACHABLE();
                 }
                 break;
             }
@@ -55,16 +67,17 @@ const LocalStatus::RoomEntryList& LocalStatus::get_room_entry_list() {
 }
 
 void LocalStatus::host_exit_room() {
-    mGameStatus = GameStatus::Lobby;
+    mGuestInfoList.clear();
     mLanPeer.stop_periodically_broadcast();
     mLanPeer.stop_listen_guest();
     mLanPeer.disconnect_all_guests();
+    mGameStatus = GameStatus::Lobby;
 }
 
 void LocalStatus::create_room() {
-    mGameStatus = GameStatus::RoomAsHost;
     mLanPeer.start_periodically_broadcast();
     mLanPeer.start_listen_guest();
+    mGameStatus = GameStatus::RoomAsHost;
 }
 
 void LocalStatus::join_room(const RoomEntry& room_entry) {
@@ -74,18 +87,20 @@ void LocalStatus::join_room(const RoomEntry& room_entry) {
         return;
     }
     mLanPeer.start_heartbeat_to_host();
+    mLanPeer.start_listen_host_packet();
     mGameStatus = GameStatus::RoomAsGuest;
 }
 
 void LocalStatus::guest_exit_room() {
     mLanPeer.stop_heartbeat_to_host();
+    mLanPeer.stop_listen_host_packet();
     mLanPeer.disconnect_from_host();
     mGameStatus = GameStatus::Lobby;
 }
 
 void LocalStatus::start_discover_room() {
-    mGameStatus = GameStatus::Lobby;
     mLanPeer.start_periodically_discover();
+    mGameStatus = GameStatus::Lobby;
 }
 
 void LocalStatus::stop_discover_room() {
@@ -97,6 +112,6 @@ const LocalStatus::GuestInfoList& LocalStatus::get_guest_info_list() {
 }
 
 void LocalStatus::start_game() {
-    mGameStatus = GameStatus::Running;
     TODO();
+    mGameStatus = GameStatus::Running;
 }

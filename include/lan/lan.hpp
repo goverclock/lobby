@@ -16,7 +16,7 @@
 
 namespace lan {
 
-enum class LanMessageUpdated { RoomInfoList, GuestInRoom, HostDismissRoom };
+enum class LanMessageUpdated { RoomInfoList, NewGuestInRoom, HostDismissRoom };
 
 // TODO: actually room info
 struct RoomInfo {
@@ -45,6 +45,9 @@ struct RoomInfo {
     }
 };
 
+// in a room as guest
+class LanGuest {};
+
 class LanPeer {
    public:
     LanPeer() = default;
@@ -56,7 +59,7 @@ class LanPeer {
     void start_listen_guest();
     void stop_listen_guest();
     void disconnect_all_guests();
-    const std::unordered_map<std::string, GuestConnection>&
+    std::tuple<std::vector<std::string>, std::vector<SignalStrength>>
     get_connected_guest_info_list();
 
     // as guest
@@ -66,7 +69,11 @@ class LanPeer {
     void disconnect_from_host();
     void start_heartbeat_to_host();
     void stop_heartbeat_to_host();
+    void start_listen_host_packet();
+    void stop_listen_host_packet();
+    packet::GuestsInRoomPacket get_pending_girp();
 
+    // not in a room, or common methods
     std::optional<LanMessageUpdated> poll_updates();
     std::vector<RoomInfo> get_room_info_list();
 
@@ -84,14 +91,18 @@ class LanPeer {
     // TODO: change to sf::IpAddr, std::time_t
     std::unordered_map<std::string, std::time_t> mRoomLastHeard;
 
-    sf::TcpSocket mToHostTcpSocket;
+    // as host
     void update_connected_guest_info();
     GuestConnectionManager mGuestConnectionManager;
-
     std::atomic<bool> mIsBroadcasting = false;
     std::atomic<bool> mIsListeningGuest = false;
+
+    // as guest
+    sf::TcpSocket mToHostTcpSocket;
+    packet::GuestsInRoomPacket mPendingGIRP;
     std::atomic<bool> mIsDiscovering = false;
     std::atomic<bool> mIsHeartbeating = false;
+    std::atomic<bool> mIsReceivingHostPacket = false;
 };
 
 };  // namespace lan

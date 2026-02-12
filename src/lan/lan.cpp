@@ -2,6 +2,7 @@
 #include <cstring>
 #include <print>
 #include <thread>
+#include <tuple>
 
 #include "ergonomics.hpp"
 #include "lan/lan.hpp"
@@ -53,9 +54,9 @@ void LanPeer::start_periodically_discover() {
         // try to bind until success or no longer discovering
         while (socket.bind(PORT) != sf::Socket::Status::Done &&
                mIsDiscovering.load()) {
-            std::println("fail to UDP bind port {}, try again in 1s", PORT);
+            std::println("fail to UDP bind port {}, try again in 2s", PORT);
             update_room_info();
-            sf::sleep(sf::seconds(1.f));
+            sf::sleep(sf::seconds(2.f));
         }
 
         std::optional<sf::IpAddress> sender_ip = sf::IpAddress::Broadcast;
@@ -112,6 +113,7 @@ void LanPeer::start_listen_guest() {
                                      guest.getRemoteAddress()->toString());
                         mGuestConnectionManager.add_connection(
                             std::move(guest));
+                        mGuestConnectionManager.send_guest_list_to_all();
                         break;
                     }
                     case sf::Socket::Status::NotReady:
@@ -138,12 +140,23 @@ void LanPeer::disconnect_all_guests() {
 void LanPeer::update_connected_guest_info() {
     std::lock_guard guard(mLock);
     if (mGuestConnectionManager.check_guest_info_update())
-        enque_updateL(LanMessageUpdated::GuestInRoom);
+        enque_updateL(LanMessageUpdated::NewGuestInRoom);
 }
 
-const std::unordered_map<std::string, GuestConnection>&
+std::tuple<std::vector<std::string>, std::vector<SignalStrength>>
 LanPeer::get_connected_guest_info_list() {
-    return mGuestConnectionManager.guest_connection_list();
+    std::lock_guard guard(mLock);
+    const auto& guest_conn_list =
+        mGuestConnectionManager.guest_connection_list();
+    std::vector<std::string> nicknames;
+    std::vector<SignalStrength> signal_strengths;
+    for (const auto& gc : guest_conn_list) {
+        auto& conn = gc.second;
+        nicknames.push_back(conn.guest_nickname());
+        signal_strengths.push_back(conn.signal_strength());
+    }
+
+    return std::make_tuple(nicknames, signal_strengths);
 }
 
 void LanPeer::update_room_info() {
@@ -196,8 +209,10 @@ std::vector<RoomInfo> LanPeer::get_room_info_list() {
 bool LanPeer::connect_to_host(std::string host_ip) {
     // TODO: for now we just block on the connect call, which means main
     // thread is freezed
+    mToHostTcpSocket.setBlocking(true);
     sf::Socket::Status status =
         mToHostTcpSocket.connect(*sf::IpAddress::resolve(host_ip), PORT);
+    mToHostTcpSocket.setBlocking(false);
     std::println("trying to connect to {}:{}, got status {}", host_ip, PORT,
                  static_cast<int>(status));
     if (status == sf::Socket::Status::Done) {
@@ -217,8 +232,9 @@ void LanPeer::start_heartbeat_to_host() {
     mIsHeartbeating.store(true);
     std::thread heartbeat_thread([this] {
         sf::Packet heartbeat_packet;
-        lan::packet::Heartbeat heartbeat{*sf::IpAddress::getLocalAddress(),
-                                         *mToHostTcpSocket.getRemoteAddress()};
+        lan::packet::HeartbeatPacket heartbeat{
+            *sf::IpAddress::getLocalAddress(),
+            *mToHostTcpSocket.getRemoteAddress()};
         heartbeat_packet << heartbeat;
         while (mIsHeartbeating.load()) {
             sf::sleep(sf::seconds(1.f));
@@ -226,10 +242,12 @@ void LanPeer::start_heartbeat_to_host() {
                          heartbeat.from.toString(), heartbeat.to.toString());
 
             std::lock_guard guard(mLock);
-            assert(mToHostTcpSocket.isBlocking());
             sf::Socket::Status status = mToHostTcpSocket.send(heartbeat_packet);
+            // TODO: handle partial send
             if (status != sf::Socket::Status::Done) {
-                std::println("host lost, exit room passively as guest");
+                std::println(
+                    "(sending heartbeat)host lost, exit room passively as "
+                    "guest");
                 enque_updateL(LanMessageUpdated::HostDismissRoom);
                 break;
             }
@@ -239,4 +257,45 @@ void LanPeer::start_heartbeat_to_host() {
 }
 
 void LanPeer::stop_heartbeat_to_host() { mIsHeartbeating.store(false); }
+
+void LanPeer::start_listen_host_packet() {
+    mIsReceivingHostPacket.store(true);
+    std::thread listen_host_packet_thread([this] {
+        while (mIsReceivingHostPacket.load()) {
+            sf::Packet host_packet;
+            packet::HostToGuestPacket htgp;
+            std::lock_guard guard(mLock);
+            sf::Socket::Status status = mToHostTcpSocket.receive(host_packet);
+            switch (status) {
+                case sf::Socket::Status::Done:
+                    host_packet >> htgp;
+                    if (std::holds_alternative<packet::GuestsInRoomPacket>(
+                            htgp.packet)) {
+                        std::println("receiving GuestsInRoomPacket");
+                        mPendingGIRP =
+                            std::get<packet::GuestsInRoomPacket>(htgp.packet);
+                        enque_updateL(LanMessageUpdated::NewGuestInRoom);
+                    }
+                    break;
+                case sf::Socket::Status::NotReady:
+                    // just next loop
+                    break;
+                default:  // Disconnected or Error
+                    std::println("host lost, exit room passively as guest");
+                    enque_updateL(LanMessageUpdated::HostDismissRoom);
+                    mIsReceivingHostPacket.store(false);
+                    break;
+            }
+        }
+    });
+    listen_host_packet_thread.detach();
+}
+
+packet::GuestsInRoomPacket LanPeer::get_pending_girp() {
+    std::lock_guard guard(mLock);
+    return mPendingGIRP;
+}
+
+void LanPeer::stop_listen_host_packet() { mIsReceivingHostPacket.store(false); }
+
 };  // namespace lan

@@ -1,24 +1,52 @@
 #pragma once
 #include <SFML/Network.hpp>
+#include <variant>
+
+#include "ergonomics.hpp"
 
 namespace lan {
 namespace packet {
 
-struct Heartbeat {
+/********************* from guest to host packets start *********************/
+struct HeartbeatPacket {
     sf::IpAddress from = sf::IpAddress::Broadcast;
     sf::IpAddress to = sf::IpAddress::Broadcast;
 };
+sf::Packet& operator<<(sf::Packet& packet, const HeartbeatPacket& heartbeat);
+sf::Packet& operator>>(sf::Packet& packet, HeartbeatPacket& heartbeat);
 
-sf::Packet& operator<<(sf::Packet& packet, const Heartbeat& heartbeat);
-sf::Packet& operator>>(sf::Packet& packet, Heartbeat& heartbeat);
+/********************** from guest to host packets end **********************/
 
-struct GuestsInRoom {
-    std::string nickname;
-    int signal_strength;
+/********************* from host to guest packets start *********************/
+
+struct GuestsInRoomPacket {
+    size_t guest_count;
+    std::vector<std::string>
+        nicknames;  // TODO: can stream read in and restore vecotr correctly?
+                    // implement that in << >> functions...
+    std::vector<int> signal_strengths;
+};
+sf::Packet& operator<<(sf::Packet& packet, const GuestsInRoomPacket& gir);
+sf::Packet& operator>>(sf::Packet& packet, GuestsInRoomPacket& gir);
+
+struct GameStartingPacket {
+    std::string game_name;
+};
+sf::Packet& operator<<(sf::Packet& packet, const GameStartingPacket& gs);
+sf::Packet& operator>>(sf::Packet& packet, GameStartingPacket& gs);
+
+enum class HostToGuestPacketType {
+    GuestsInRoom,
+    GameStarting,
 };
 
-sf::Packet& operator<<(sf::Packet& packet, const GuestsInRoom& gir);
-sf::Packet& operator>>(sf::Packet& packet, GuestsInRoom& gir);
+struct HostToGuestPacket {
+    std::variant<GuestsInRoomPacket, GameStartingPacket> packet;
+};
+sf::Packet& operator<<(sf::Packet& packet, const HostToGuestPacket& htgp);
+sf::Packet& operator>>(sf::Packet& packet, HostToGuestPacket& htgp);
+
+/********************** from host to guest packets end **********************/
 
 };  // namespace packet
 };  // namespace lan

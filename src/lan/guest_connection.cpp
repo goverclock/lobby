@@ -13,6 +13,10 @@ std::string GuestConnection::guest_ip() const {
     return getRemoteAddress()->toString();
 }
 
+std::string GuestConnection::guest_nickname() const {
+    return "guestnick" + guest_ip();  // TEST:
+}
+
 SignalStrength GuestConnection::signal_strength() const {
     std::time_t now = std::time(nullptr);
     SignalStrength ret = SignalStrength::Lost;
@@ -27,6 +31,32 @@ SignalStrength GuestConnection::signal_strength() const {
     return ret;
 }
 
+// we don't return anything, we want GuestConnectionManager to check connection
+// status ahead of sending/receiving any packet
+void GuestConnection::send_packet(packet::HostToGuestPacket htgp) {
+    bool done = false;
+    sf::Packet packet;
+    sf::Socket::Status status;
+    packet << htgp;
+    while (!done) {
+        status = send(packet);
+        switch (status) {
+            case sf::Socket::Status::Partial:
+                std::println("partial, retry sending packet");
+                break;
+            case sf::Socket::Status::Done:
+                std::println("done sending packet");
+                done = true;
+                break;
+            default:
+                std::println("error sending packet, status: %d",
+                             static_cast<int>(status));
+                done = true;
+                break;
+        }
+    }
+}
+
 GuestConnectionManager::~GuestConnectionManager() {
     mLock.lock();
     mIsDestructed = true;
@@ -36,9 +66,14 @@ GuestConnectionManager::~GuestConnectionManager() {
 
 void GuestConnectionManager::add_connection(sf::TcpSocket&& socket) {
     std::lock_guard guard(mLock);
-    mConnectionSelector.add(socket);
     std::string guest_ip = socket.getRemoteAddress()->toString();
+    if (mConnections.find(guest_ip) != mConnections.end()) {
+        std::println("connection already exist, this should not happen!");
+        UNREACHABLE();
+        return;
+    }
     mConnections.emplace(guest_ip, std::move(socket));
+    mConnectionSelector.add(mConnections[guest_ip]);
 }
 
 void GuestConnectionManager::disconnect_all() {
@@ -72,12 +107,35 @@ GuestConnectionManager::guest_connection_list() {
     return mConnections;
 }
 
+void GuestConnectionManager::send_guest_list_to_all() {
+    std::lock_guard guard(mLock);
+
+    packet::GuestsInRoomPacket girp;
+    girp.guest_count = mConnections.size();
+    for (const auto& gc : mConnections) {
+        const auto& conn = gc.second;
+        girp.nicknames.push_back(conn.guest_nickname());
+        girp.signal_strengths.push_back(
+            static_cast<int>(conn.signal_strength()));
+    }
+
+    packet::HostToGuestPacket htgp;
+    htgp.packet = girp;
+    // send packet to all connections
+    for (auto& gc : mConnections) {
+        auto& conn = gc.second;
+        // yep, we don't fucking care about if this succeed
+        conn.send_packet(htgp);
+    }
+}
+
 void GuestConnectionManager::bookkeep() {
     std::println("GuestConnectionManager bookkeep thread running");
     while (true) {
         mLock.lock();
         if (mIsDestructed) {
             std::println("GuestConnectionManager bookkeep thread exiting");
+            mLock.unlock();
             return;
         }
         // FUCK it we just want to let add_connection can interrupt
@@ -95,7 +153,7 @@ void GuestConnectionManager::bookkeep() {
                 // handle heartbeat packet
                 switch (status) {
                     case sf::Socket::Status::Done: {
-                        packet::Heartbeat hb;
+                        packet::HeartbeatPacket hb;
                         packet >> hb;
                         std::println("receiving heartbeatpacket: {}->{} ",
                                      hb.from.toString(), hb.to.toString());

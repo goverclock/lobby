@@ -7,6 +7,8 @@
 #include <unordered_map>
 
 #include "ergonomics.hpp"
+#include "lan/guest_connection.hpp"
+#include "lan/packet.hpp"
 
 namespace lan {
 
@@ -17,6 +19,8 @@ enum class SignalStrength {
     Lost,
 };
 
+// no lock in this class, the GuestConnectionManager should take care of the
+// concurrent access to it
 class GuestConnection : public sf::TcpSocket {
    public:
     GuestConnection() { UNREACHABLE(); };
@@ -26,8 +30,10 @@ class GuestConnection : public sf::TcpSocket {
 
     bool check_update() const;
     std::string guest_ip() const;
+    std::string guest_nickname() const;
     static constexpr int guest_lost_timeout = 5;
     SignalStrength signal_strength() const;
+    void send_packet(packet::HostToGuestPacket packet);
 
     std::time_t mLastHeartbeat;
 
@@ -41,14 +47,15 @@ class GuestConnectionManager {
     GuestConnectionManager() : mBookkeepThread([&]() { bookkeep(); }) {};
     ~GuestConnectionManager();
 
-    void add_connection(sf::TcpSocket&& socket);  // TODO: assert no duplication
-    // no need to remove connection method, beacause it's already handled inside
-    // this class
+    void add_connection(sf::TcpSocket&& socket);
+    // no need for remove connection method, beacause it's already handled
+    // inside this class
     void disconnect_all();
     int guest_count();
     bool check_guest_info_update();
     const std::unordered_map<std::string, GuestConnection>&
     guest_connection_list();
+    void send_guest_list_to_all();
 
    private:
     void bookkeep();

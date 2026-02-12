@@ -41,6 +41,7 @@ SceneLobby::SceneLobby(LocalStatus& local_status)
         mLocalStatus.create_room();
     });
     mRoomListView.on_item_click([&](const LocalStatus::RoomEntry& room_entry) {
+        std::println("Lobby: clicked on a room");
         mLocalStatus.join_room(room_entry);
     });
     Scene::register_widget(mCreateRoomBtn);

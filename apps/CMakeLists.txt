@@ -29,3 +29,12 @@ endif()
 # 	SFML::Graphics
 # 	widget
 # )
+
+# add_executable(packet_test
+# 	packet_test.cpp
+# )
+# target_link_libraries(lan PUBLIC )
+# target_link_libraries(packet_test PRIVATE
+# 	widget
+# 	lan
+# )

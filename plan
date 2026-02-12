@@ -6,14 +6,14 @@ order by priority
 		[x] guest start sending periodical heartbeat(through the TCP connection) to host to indicate its signal strength
 		[x] host updates guest signal strength with their heartbeat packets
 		[] host send guest list to the newly connected guest so they can initialize their room UI
-		[] host still sends periodical UDP broadcast to indicate its signal strength to all guests
-			[] if TCP connection is lost but UDP broadcast is still received, try re-connect
 	[] in the room
 		[] when host finds a new guest has joined the room, it tells all guests(through the TCP connection) about it so they can update their room UI
 		[x] when a guest exits the room, it tells the host(TCP), then disconnect
 		[] when host finds a guest has exited, it tells all guests(TCP) about it so they can update their room UI
 		[] when host exit(thus dismiss) the room, notify all guests to return to lobby
 	[] host clicks start game...
+
+[] introduce test lib
 
 [] coalesce all periodical work into one single thread
 

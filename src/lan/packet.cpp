@@ -3,11 +3,11 @@
 namespace lan {
 namespace packet {
 
-sf::Packet& operator<<(sf::Packet& packet, const Heartbeat& heartbeat) {
+// HeartbeatPacketPacket
+sf::Packet& operator<<(sf::Packet& packet, const HeartbeatPacket& heartbeat) {
     return packet << heartbeat.from.toString() << heartbeat.to.toString();
 }
-
-sf::Packet& operator>>(sf::Packet& packet, Heartbeat& heartbeat) {
+sf::Packet& operator>>(sf::Packet& packet, HeartbeatPacket& heartbeat) {
     std::string from, to;
     packet >> from >> to;
     heartbeat.from = *sf::IpAddress::resolve(from);
@@ -15,12 +15,56 @@ sf::Packet& operator>>(sf::Packet& packet, Heartbeat& heartbeat) {
     return packet;
 }
 
-sf::Packet& operator<<(sf::Packet& packet, const GuestsInRoom& gir) {
-    return packet << gir.nickname << gir.signal_strength;
+// GuestsInRoomPacket
+sf::Packet& operator<<(sf::Packet& packet, const GuestsInRoomPacket& gir) {
+    packet << gir.guest_count;
+    for (size_t i = 0; i < gir.guest_count; i++) packet << gir.nicknames[i];
+    for (size_t i = 0; i < gir.guest_count; i++)
+        packet << gir.signal_strengths[i];
+    return packet;
+}
+sf::Packet& operator>>(sf::Packet& packet, GuestsInRoomPacket& gir) {
+    packet >> gir.guest_count;
+    gir.nicknames.resize(gir.guest_count);
+    for (size_t i = 0; i < gir.guest_count; i++) packet >> gir.nicknames[i];
+    gir.signal_strengths.resize(gir.guest_count);
+    for (size_t i = 0; i < gir.guest_count; i++)
+        packet >> gir.signal_strengths[i];
+    return packet;
 }
 
-sf::Packet& operator>>(sf::Packet& packet, GuestsInRoom& gir) {
-    packet >> gir.nickname >> gir.signal_strength;
+// GameStartingPacket
+sf::Packet& operator<<(sf::Packet& packet, const GameStartingPacket& gs) {
+    return packet << gs.game_name;
+}
+sf::Packet& operator>>(sf::Packet& packet, GameStartingPacket& gs) {
+    packet >> gs.game_name;
+    return packet;
+}
+
+// HostToGuestPacket
+sf::Packet& operator<<(sf::Packet& packet, const HostToGuestPacket& htgp) {
+    HostToGuestPacketType type;
+    if (std::holds_alternative<GuestsInRoomPacket>(htgp.packet)) {
+        type = HostToGuestPacketType::GuestsInRoom;
+        packet << static_cast<int>(type);
+        packet << std::get<GuestsInRoomPacket>(htgp.packet);
+    } else if (std::holds_alternative<GameStartingPacket>(htgp.packet)) {
+        TODO();
+    }
+    return packet;
+}
+sf::Packet& operator>>(sf::Packet& packet, HostToGuestPacket& htgp) {
+    int t;
+    packet >> t;
+    HostToGuestPacketType type{t};
+
+    if (type == HostToGuestPacketType::GuestsInRoom) {
+        packet >> std::get<GuestsInRoomPacket>(htgp.packet);
+    } else if (type == HostToGuestPacketType::GameStarting) {
+        TODO();
+    }
+
     return packet;
 }
 

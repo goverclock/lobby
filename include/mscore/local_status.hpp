@@ -49,10 +49,10 @@ class LocalStatus {
     using GuestInfo = struct GuestInfo {
         std::string nickname;
         std::string ip;
-        int signal_strength;
+        lan::SignalStrength signal_strength;
         std::string to_string() const {
             return nickname + " " + ip + " " +
-                   std::string(signal_strength, '|');
+                   std::string(static_cast<int>(signal_strength) + 1, '|');
         }
     };
     using GuestInfoList = std::vector<GuestInfo>;
@@ -63,6 +63,7 @@ class LocalStatus {
    private:
     // network
     lan::LanPeer mLanPeer;
+    // different lan role handles same lan message updates differently
     RoomEntryList mRoomEntryList;
     GuestInfoList mGuestInfoList;
     GameStatus mGameStatus;
