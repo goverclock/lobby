@@ -2,16 +2,21 @@ order by priority
 
 [] connection management
 	[x] when guest joins a room entry, it trys to establish a TCP connection to the host
-	[] once connected
+	[x] once connected
 		[x] guest start sending periodical heartbeat(through the TCP connection) to host to indicate its signal strength
 		[x] host updates guest signal strength with their heartbeat packets
-		[] host send guest list to the newly connected guest so they can initialize their room UI
-	[] in the room
-		[] when host finds a new guest has joined the room, it tells all guests(through the TCP connection) about it so they can update their room UI
+		[x] host send guest list to the newly connected guest so they can initialize their room UI
+	[x] in the room
+		[x] when host finds a new guest has joined the room, it tells all guests(through the TCP connection) about it so they can update their room UI
 		[x] when a guest exits the room, it tells the host(TCP), then disconnect
-		[] when host finds a guest has exited, it tells all guests(TCP) about it so they can update their room UI
-		[] when host exit(thus dismiss) the room, notify all guests to return to lobby
+		[x] when host finds a guest has exited, it tells all guests(TCP) about it so they can update their room UI
+		[x] when host exit(thus dismiss) the room, notify all guests to return to lobby
 	[] host clicks start game...
+		[] send game starting packet to all guests
+		[] all players(host&guest) exec game with cmd args, which are other players' ip addr
+	[] when game ends...
+
+	[] test all above functionalities using seperate machines!
 
 [] introduce test lib
 
@@ -34,10 +39,6 @@ order by priority
 [x] button class
 
 [x] list view class, maybe a widget lib
-
-[] use namespace for each lib
-
-[] lazy rendering if performance needed
 
 [x] replace all render() into draw(), aka sf::Drawable
 
