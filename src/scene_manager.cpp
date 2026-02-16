@@ -142,8 +142,6 @@ void SceneManager::handle_window_event() {
             }
         };
 
-    // TODO: also handle window resize event, so SceneNode's widget can update
-    // its size
     mWindow.handleEvents([&](const sf::Event::Closed) { mWindow.close(); },
                          on_key_pressed, on_mouse_button_pressed);
 }

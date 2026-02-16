@@ -25,13 +25,13 @@ class LocalStatus {
     void update();
 
     using RoomEntry = struct RoomEntry {
-        std::string name = "";
+        std::string name;
         std::string ip;
         int signal_strength;
         int player_count;
         GameType game_type;
         std::string to_string() const {
-            return name + " " + std::string(signal_strength, '|');
+            return name + "(" + ip + ")" + std::string(signal_strength, '|');
         }
     };
     using RoomEntryList = std::vector<RoomEntry>;

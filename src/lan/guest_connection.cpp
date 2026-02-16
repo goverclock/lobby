@@ -36,25 +36,13 @@ SignalStrength GuestConnection::signal_strength() const {
 void GuestConnection::send_packet(packet::HostToGuestPacket htgp) {
     bool done = false;
     sf::Packet packet;
-    sf::Socket::Status status;
     packet << htgp;
-    while (!done) {
-        status = send(packet);
-        switch (status) {
-            case sf::Socket::Status::Partial:
-                std::println("partial, retry sending packet");
-                break;
-            case sf::Socket::Status::Done:
-                std::println("done sending packet");
-                done = true;
-                break;
-            default:
-                std::println("error sending packet, status: %d",
-                             static_cast<int>(status));
-                done = true;
-                break;
-        }
-    }
+
+    sf::Socket::Status status = sf::Socket::Status::Partial;
+    while (status == sf::Socket::Status::Partial) status = send(packet);
+    if (status != sf::Socket::Status::Done)
+        std::println("error sending packet, status: %d",
+                     static_cast<int>(status));
 }
 
 GuestConnectionManager::~GuestConnectionManager() {

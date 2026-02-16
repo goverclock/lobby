@@ -27,19 +27,22 @@ void LanPeer::start_periodically_broadcast() {
     mIsBroadcasting.store(true);
     std::thread broadcasting_thread([this] {
         sf::UdpSocket socket;
+        socket.setBlocking(false);
         while (mIsBroadcasting.load()) {
-            static const char* str =
-                "hello there is a host";  // maybe send room name
-            std::array<char, 32> msg;
-            std::strncpy(msg.data(), str, std::strlen(str));
-            std::println("broadcasting with {} bytes", msg.size());
-            if (socket.send(msg.data(), msg.size(), sf::IpAddress::Broadcast,
-                            PORT) != sf::Socket::Status::Done) {
-                std::println("fail to send broadcast message");
-            }
+            sf::Packet packet;
+            lan::packet::RoomBroadcastPacket rbp;
+            rbp.room_name = "someroomname";
+            packet << rbp;
+
+            sf::Socket::Status status = sf::Socket::Status::Partial;
+            while (status == sf::Socket::Status::Partial)
+                status = socket.send(packet, sf::IpAddress::Broadcast, PORT);
+            assert(status == sf::Socket::Status::Done);
+            std::println("broadcasting rbp: {}", rbp.room_name);
             sf::sleep(sf::seconds(1.f));
         }
     });
+
     broadcasting_thread.detach();
 }
 
@@ -59,32 +62,36 @@ void LanPeer::start_periodically_discover() {
             sf::sleep(sf::seconds(2.f));
         }
 
+        sf::Socket::Status status;
+        sf::Packet packet;
         std::optional<sf::IpAddress> sender_ip = sf::IpAddress::Broadcast;
         unsigned short sender_port;
-        std::array<char, 32> data;
-        size_t len = 0;
         while (mIsDiscovering.load()) {
-            const sf::Socket::Status status = socket.receive(
-                data.data(), data.size(), len, sender_ip, sender_port);
+            status = socket.receive(packet, sender_ip, sender_port);
             switch (status) {
-                case sf::Socket::Status::Done:
-                    std::println("received {} bytes from {}:{}, data: '{}' ",
-                                 len, sender_ip->toString(), sender_port,
-                                 data.data());
+                case sf::Socket::Status::Done: {
+                    lan::packet::RoomBroadcastPacket rbp;
+                    packet >> rbp;
+                    std::println("received rbp from {}:{}, room_name: '{}' ",
+                                 sender_ip->toString(), sender_port,
+                                 rbp.room_name);
                     mLock.lock();
                     mRoomLastHeard[sender_ip->toString()] = std::time(nullptr);
+                    mRoomInfoList[sender_ip->toString()].name = rbp.room_name;
                     mLock.unlock();
                     break;
+                }
                 case sf::Socket::Status::NotReady:
-                    update_room_info();
                     sf::sleep(sf::seconds(1.f));
                     break;
                 default:
                     std::println("discovery status: {}",
                                  static_cast<int>(status));
             }
+            update_room_info();
         }
     });
+
     discovering_thread.detach();
 }
 
@@ -179,7 +186,10 @@ void LanPeer::update_room_info() {
 
     // update signal strength for rooms that isn't lost
     for (const auto& lh : mRoomLastHeard) {
-        RoomInfo expected{.ip = lh.first};
+        RoomInfo expected{
+            .name = mRoomInfoList[lh.first].name,
+            .ip = lh.first,
+        };
         int time_elapsed = std::difftime(now, lh.second);
         if (time_elapsed <= 2 * LanPeer::BROADCAST_INTERVAL)
             expected.signal_strength = SignalStrength::Strong;
@@ -189,9 +199,10 @@ void LanPeer::update_room_info() {
             expected.signal_strength = SignalStrength::Weak;
 
         if (mRoomInfoList[lh.first] != expected) {
-            std::println("enque update for RoomInfo from {} to {}",
-                         mRoomInfoList[lh.first].to_string(),
-                         expected.to_string());
+            std::println(
+                "enque update for RoomInfo from {} to {}, room_name: {}",
+                mRoomInfoList[lh.first].to_string(), expected.to_string(),
+                mRoomInfoList[lh.first].name);
             mRoomInfoList[lh.first] = expected;
             updated = true;
         }
@@ -243,7 +254,8 @@ void LanPeer::start_heartbeat_to_host() {
 
             std::lock_guard guard(mLock);
             sf::Socket::Status status = mToHostTcpSocket.send(heartbeat_packet);
-            // TODO: handle partial send
+            while (status == sf::Socket::Status::Partial)
+                status = mToHostTcpSocket.send(heartbeat_packet);
             if (status != sf::Socket::Status::Done) {
                 std::println(
                     "(sending heartbeat)host lost, exit room passively as "

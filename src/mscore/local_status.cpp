@@ -16,12 +16,12 @@ void LocalStatus::update() {
                 mRoomEntryList.clear();
                 std::vector<lan::RoomInfo> room_info_list =
                     mLanPeer.get_room_info_list();
-                for (const auto& pi : room_info_list) {
+                for (const auto& ri : room_info_list) {
                     mRoomEntryList.push_back(RoomEntry{
-                        .name = pi.ip + "'s room",
-                        .ip = pi.ip,
+                        .name = ri.name,
+                        .ip = ri.ip,
                         .signal_strength =
-                            static_cast<int>(pi.signal_strength) + 1});
+                            static_cast<int>(ri.signal_strength) + 1});
                 }
                 break;
             }

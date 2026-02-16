@@ -3,6 +3,13 @@
 namespace lan {
 namespace packet {
 
+sf::Packet& operator<<(sf::Packet& packet, const RoomBroadcastPacket& rbp) {
+    return packet << rbp.room_name;
+}
+sf::Packet& operator>>(sf::Packet& packet, RoomBroadcastPacket& rbp) {
+    return packet >> rbp.room_name;
+}
+
 // HeartbeatPacketPacket
 sf::Packet& operator<<(sf::Packet& packet, const HeartbeatPacket& heartbeat) {
     return packet << heartbeat.from.toString() << heartbeat.to.toString();

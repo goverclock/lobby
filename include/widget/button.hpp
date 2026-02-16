@@ -22,7 +22,7 @@ class Button : public Widget {
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;
 
    private:
-    std::function<void(void)> mClickCallbackFunc;
+    std::function<void(void)> mClickCallbackFunc = nullptr;
     sf::RectangleShape mRectangle;
     sf::Text mText;
 };

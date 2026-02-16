@@ -36,7 +36,7 @@ bool ListView<T>::handle_event(sf::RenderWindow& w, sf::Event e) {
         temp_entry_rect.setPosition({0, y});
         if (temp_entry_rect.getLocalBounds().contains(
                 {(float)local_mouse_pos.x, (float)local_mouse_pos.y})) {
-            mClickItemCallbackFunc(e);
+            if (mClickItemCallbackFunc) mClickItemCallbackFunc(e);
             return true;
         }
 

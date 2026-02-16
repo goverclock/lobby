@@ -32,7 +32,8 @@ order by priority
 
 [x] remove linux proprietary headers, to compile it on windows
 
-[] tell room name to guests with the broadcast message
+[x] tell room name to guests with the broadcast message
+	[] show received room name
 
 [x] refactor lan with SFML network lib
 

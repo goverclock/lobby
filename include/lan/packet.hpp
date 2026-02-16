@@ -7,6 +7,12 @@
 namespace lan {
 namespace packet {
 
+struct RoomBroadcastPacket {
+    std::string room_name;
+};
+sf::Packet& operator<<(sf::Packet& packet, const RoomBroadcastPacket& rbp);
+sf::Packet& operator>>(sf::Packet& packet, RoomBroadcastPacket& rbp);
+
 /********************* from guest to host packets start *********************/
 struct HeartbeatPacket {
     sf::IpAddress from = sf::IpAddress::Broadcast;
@@ -21,9 +27,7 @@ sf::Packet& operator>>(sf::Packet& packet, HeartbeatPacket& heartbeat);
 
 struct GuestsInRoomPacket {
     size_t guest_count;
-    std::vector<std::string>
-        nicknames;  // TODO: can stream read in and restore vecotr correctly?
-                    // implement that in << >> functions...
+    std::vector<std::string> nicknames;
     std::vector<int> signal_strengths;
 };
 sf::Packet& operator<<(sf::Packet& packet, const GuestsInRoomPacket& gir);

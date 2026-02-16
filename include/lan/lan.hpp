@@ -18,8 +18,8 @@ namespace lan {
 
 enum class LanMessageUpdated { RoomInfoList, NewGuestInRoom, HostDismissRoom };
 
-// TODO: actually room info
 struct RoomInfo {
+    std::string name;
     std::string ip;  // port is unneeded since it's fixed to LanPeer::PORT
     SignalStrength signal_strength;
 

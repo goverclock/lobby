@@ -27,7 +27,7 @@ class ListView : public Widget {
     const std::vector<T>& mItemList;
     sf::RectangleShape mEntryRect;
     sf::Text mEntryText;
-    std::function<void(const T&)> mClickItemCallbackFunc;
+    std::function<void(const T&)> mClickItemCallbackFunc = nullptr;
 };
 
 };  // namespace widget
