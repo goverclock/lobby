@@ -1,4 +1,7 @@
-add_library(widget button.cpp)
+add_library(widget
+	button.cpp
+	splash_screen.cpp
+)
 
 target_link_libraries(widget PUBLIC
 	SFML::Graphics

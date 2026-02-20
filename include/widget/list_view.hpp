@@ -18,7 +18,7 @@ class ListView : public Widget {
 
     void on_item_click(std::function<void(const T&)>);
 
-    // Widget
+    // Responsive
     bool handle_event(sf::RenderWindow& w, sf::Event e) override;
     // Drawable
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;

@@ -112,6 +112,5 @@ const LocalStatus::GuestInfoList& LocalStatus::get_guest_info_list() {
 }
 
 void LocalStatus::start_game() {
-    TODO();
-    mGameStatus = GameStatus::Running;
+    mGameStatus = GameStatus::Running;	// TEST:
 }

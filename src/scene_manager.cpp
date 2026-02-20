@@ -66,7 +66,9 @@ bool SceneLobby::handle_event(sf::RenderWindow& w, sf::Event e) {
 }
 
 SceneRoomAsHost::SceneRoomAsHost(LocalStatus& local_status)
-    : Scene(local_status), mPlayerListView(local_status.get_guest_info_list()) {
+    : Scene(local_status),
+      mPlayerListView(local_status.get_guest_info_list()),
+      mGameRunningSplash("Game running...") {
     mExitRoomBtn.set_text("Exit room");
     mExitRoomBtn.on_click([&] {
         std::println("RoomAsHost: clicked on Exit room");
@@ -77,6 +79,7 @@ SceneRoomAsHost::SceneRoomAsHost(LocalStatus& local_status)
     Scene::register_widget(mExitRoomBtn);
     Scene::register_widget(mStartGameBtn);
     Scene::register_widget(mPlayerListView);
+    Scene::register_widget(mGameRunningSplash);
 }
 
 SceneRoomAsHost::~SceneRoomAsHost() {}
@@ -88,6 +91,9 @@ bool SceneRoomAsHost::handle_event(sf::RenderWindow& w, sf::Event e) {
     mExitRoomBtn.setPosition({x, y});
     mStartGameBtn.setPosition({0.f, y});
     mPlayerListView.setPosition({100.f, 100.f});
+    if (e.is<sf::Event::FocusGained>() || e.is<sf::Event::Resized>())
+        if (mGameRunningSplash.handle_event(w, e)) return true;
+
     if (e.is<sf::Event::MouseButtonPressed>()) {
         mExitRoomBtn.handle_event(w, e);
         mStartGameBtn.handle_event(w, e);
@@ -162,6 +168,7 @@ void SceneManager::update_scene_type() {
                 std::println("to Lobby");
                 mScene = std::make_unique<SceneLobby>(mLocalStatus);
                 break;
+            case GameStatus::Running:  // TEST:
             case GameStatus::RoomAsHost:
                 std::println("to RoomAsHost");
                 mScene = std::make_unique<SceneRoomAsHost>(mLocalStatus);

@@ -16,7 +16,7 @@ class Button : public Widget {
     void set_fill_color(sf::Color color);
     void set_text(std::string text);
 
-    // Widget
+    // Responsive
     bool handle_event(sf::RenderWindow& w, sf::Event e) override;
     // Drawable
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override;

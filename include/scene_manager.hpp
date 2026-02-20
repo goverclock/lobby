@@ -5,6 +5,7 @@
 #include "mscore/local_status.hpp"
 #include "widget/button.hpp"
 #include "widget/list_view.hpp"
+#include "widget/splash_screen.hpp"
 
 enum class SceneType {
     Lobby,
@@ -66,6 +67,7 @@ class SceneRoomAsHost : public Scene {
     widget::Button mExitRoomBtn;
     widget::Button mStartGameBtn;
     widget::ListView<LocalStatus::GuestInfo> mPlayerListView;
+	widget::SplashScreen mGameRunningSplash;
 };
 
 class SceneRoomAsGuest : public Scene {
