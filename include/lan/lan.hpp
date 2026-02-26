@@ -16,7 +16,12 @@
 
 namespace lan {
 
-enum class LanMessageUpdated { RoomInfoList, NewGuestInRoom, HostDismissRoom };
+enum class LanMessageUpdated {
+    RoomInfoList,
+    NewGuestInRoom,
+    GameStarting,
+    HostDismissRoom
+};
 
 struct RoomInfo {
     std::string name;
@@ -61,6 +66,7 @@ class LanPeer {
     void disconnect_all_guests();
     std::tuple<std::vector<std::string>, std::vector<SignalStrength>>
     get_connected_guest_info_list();
+    void send_game_starting_packet();
 
     // as guest
     void start_periodically_discover();
@@ -86,9 +92,7 @@ class LanPeer {
     std::unordered_set<LanMessageUpdated> mUpdatedSet;
 
     void update_room_info();
-    // TODO: change to sf::IpAddr, RoomInfo
     std::map<std::string, RoomInfo> mRoomInfoList;
-    // TODO: change to sf::IpAddr, std::time_t
     std::unordered_map<std::string, std::time_t> mRoomLastHeard;
 
     // as host

@@ -117,6 +117,24 @@ void GuestConnectionManager::send_guest_list_to_all() {
     }
 }
 
+void GuestConnectionManager::send_game_starting_to_all() {
+    std::lock_guard guard(mLock);
+
+    packet::GameStartingPacket gsp;
+    gsp.game_name = "TEST:some game name";
+    for (const auto& gc : mConnections) {
+        gsp.player_nicknames.push_back(gc.second.guest_nickname());
+        gsp.player_ips.push_back(gc.first);
+    }
+
+    packet::HostToGuestPacket htgp;
+    htgp.packet = gsp;
+    for (auto& gc : mConnections) {
+        auto& conn = gc.second;
+        conn.send_packet(htgp);
+    }
+}
+
 void GuestConnectionManager::bookkeep() {
     std::println("GuestConnectionManager bookkeep thread running");
     while (true) {

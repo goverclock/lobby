@@ -35,6 +35,8 @@ sf::Packet& operator>>(sf::Packet& packet, GuestsInRoomPacket& gir);
 
 struct GameStartingPacket {
     std::string game_name;
+    std::vector<std::string> player_nicknames;
+    std::vector<std::string> player_ips;
 };
 sf::Packet& operator<<(sf::Packet& packet, const GameStartingPacket& gs);
 sf::Packet& operator>>(sf::Packet& packet, GameStartingPacket& gs);

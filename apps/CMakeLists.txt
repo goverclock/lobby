@@ -38,3 +38,12 @@ endif()
 # 	widget
 # 	lan
 # )
+
+add_executable(gs_packet_test
+	gs_packet_test.cpp
+)
+target_link_libraries(lan PUBLIC )
+target_link_libraries(gs_packet_test PRIVATE
+	widget
+	lan
+)

@@ -18,9 +18,16 @@ SplashScreen& SplashScreen::set_text(std::string text) {
     return *this;
 }
 
+SplashScreen& SplashScreen::enable(bool en) {
+    mIsEnable = en;
+    return *this;
+}
+
 // note: if we want to fix the text in the center, use this method to
 // handle window resize event
 bool SplashScreen::handle_event(sf::RenderWindow& w, sf::Event e) {
+    if (!mIsEnable) return false;
+
     sf::Vector2f text_size = mText.getLocalBounds().size;
     mTextRect.setSize({text_size.x + 30.f, text_size.y + 30.f});
 
@@ -45,6 +52,7 @@ bool SplashScreen::handle_event(sf::RenderWindow& w, sf::Event e) {
 // Drawable
 void SplashScreen::draw(sf::RenderTarget& target,
                         sf::RenderStates states) const {
+    if (!mIsEnable) return;
     states.transform *= getTransform();
     target.draw(mDimLayer, states);
     target.draw(mTextRect, states);

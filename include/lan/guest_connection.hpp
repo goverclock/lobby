@@ -56,6 +56,7 @@ class GuestConnectionManager {
     const std::unordered_map<std::string, GuestConnection>&
     guest_connection_list();
     void send_guest_list_to_all();
+    void send_game_starting_to_all();
 
    private:
     void bookkeep();

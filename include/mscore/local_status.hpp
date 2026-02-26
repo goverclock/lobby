@@ -9,7 +9,6 @@ enum class GameStatus {
     RoomAsHost,
     RoomAsGuest,
     NotStarted,  // aka title screen
-    Running,
 };
 
 enum class GameType {

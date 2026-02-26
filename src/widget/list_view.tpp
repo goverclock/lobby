@@ -27,8 +27,6 @@ bool ListView<T>::handle_event(sf::RenderWindow& w, sf::Event e) {
     const sf::Vector2f local_mouse_pos = getInverseTransform().transformPoint(
         {(float)global_mouse_pos.x, (float)global_mouse_pos.y});
 
-    // TODO: could do better by simply computing coords rather than creating
-    // rects
     sf::RectangleShape temp_entry_rect = mEntryRect;
     float y = 0.f;
     size_t index = 0;

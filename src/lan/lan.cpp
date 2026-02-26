@@ -166,6 +166,10 @@ LanPeer::get_connected_guest_info_list() {
     return std::make_tuple(nicknames, signal_strengths);
 }
 
+void LanPeer::send_game_starting_packet() {
+    mGuestConnectionManager.send_game_starting_to_all();
+}
+
 void LanPeer::update_room_info() {
     std::lock_guard guard(mLock);
     std::time_t now = std::time(nullptr);
@@ -218,7 +222,7 @@ std::vector<RoomInfo> LanPeer::get_room_info_list() {
 }
 
 bool LanPeer::connect_to_host(std::string host_ip) {
-    // TODO: for now we just block on the connect call, which means main
+    // for now we just block on the connect call, which means main
     // thread is freezed
     mToHostTcpSocket.setBlocking(true);
     sf::Socket::Status status =
@@ -287,7 +291,12 @@ void LanPeer::start_listen_host_packet() {
                         mPendingGIRP =
                             std::get<packet::GuestsInRoomPacket>(htgp.packet);
                         enque_updateL(LanMessageUpdated::NewGuestInRoom);
-                    }
+                    } else if (std::holds_alternative<
+                                   packet::GameStartingPacket>(htgp.packet)) {
+                        std::println("receiving GameStartingPacket");
+                        enque_updateL(LanMessageUpdated::GameStarting);
+                    } else
+                        UNREACHABLE();
                     break;
                 case sf::Socket::Status::NotReady:
                     // just next loop

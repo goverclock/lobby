@@ -111,6 +111,8 @@ const LocalStatus::GuestInfoList& LocalStatus::get_guest_info_list() {
     return mGuestInfoList;
 }
 
+// only host uses this method
 void LocalStatus::start_game() {
-    mGameStatus = GameStatus::Running;	// TEST:
+    mLanPeer.send_game_starting_packet();
+//    TODO();
 }

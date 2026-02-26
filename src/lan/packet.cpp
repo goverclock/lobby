@@ -42,10 +42,20 @@ sf::Packet& operator>>(sf::Packet& packet, GuestsInRoomPacket& gir) {
 
 // GameStartingPacket
 sf::Packet& operator<<(sf::Packet& packet, const GameStartingPacket& gs) {
-    return packet << gs.game_name;
+    packet << gs.game_name;
+    size_t player_count = gs.player_nicknames.size();
+    packet << player_count;
+    for (size_t i = 0; i < player_count; i++) packet << gs.player_nicknames[i];
+    for (size_t i = 0; i < player_count; i++) packet << gs.player_ips[i];
+    return packet;
 }
 sf::Packet& operator>>(sf::Packet& packet, GameStartingPacket& gs) {
-    packet >> gs.game_name;
+    size_t player_count = gs.player_nicknames.size();
+    packet >> gs.game_name >> player_count;
+    gs.player_nicknames.resize(player_count);
+    for (size_t i = 0; i < player_count; i++) packet >> gs.player_nicknames[i];
+    gs.player_ips.resize(player_count);
+    for (size_t i = 0; i < player_count; i++) packet >> gs.player_ips[i];
     return packet;
 }
 
@@ -57,8 +67,11 @@ sf::Packet& operator<<(sf::Packet& packet, const HostToGuestPacket& htgp) {
         packet << static_cast<int>(type);
         packet << std::get<GuestsInRoomPacket>(htgp.packet);
     } else if (std::holds_alternative<GameStartingPacket>(htgp.packet)) {
-        TODO();
-    }
+        type = HostToGuestPacketType::GameStarting;
+        packet << static_cast<int>(type);
+        packet << std::get<GameStartingPacket>(htgp.packet);
+    } else
+        UNREACHABLE();
     return packet;
 }
 sf::Packet& operator>>(sf::Packet& packet, HostToGuestPacket& htgp) {
@@ -67,10 +80,15 @@ sf::Packet& operator>>(sf::Packet& packet, HostToGuestPacket& htgp) {
     HostToGuestPacketType type{t};
 
     if (type == HostToGuestPacketType::GuestsInRoom) {
-        packet >> std::get<GuestsInRoomPacket>(htgp.packet);
+        GuestsInRoomPacket girp;
+        packet >> girp;
+        htgp.packet = girp;
     } else if (type == HostToGuestPacketType::GameStarting) {
-        TODO();
-    }
+        GameStartingPacket gsp;
+        packet >> gsp;
+        htgp.packet = gsp;
+    } else
+        UNREACHABLE();
 
     return packet;
 }

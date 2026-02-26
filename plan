@@ -2,7 +2,7 @@ order by priority, except the first one
 
 [] test all below functionalities using seperate machines!
 
-[] connection management
+[x] connection management
 	[x] when guest joins a room entry, it trys to establish a TCP connection to the host
 	[x] once connected
 		[x] guest start sending periodical heartbeat(through the TCP connection) to host to indicate its signal strength
@@ -45,4 +45,12 @@ order by priority, except the first one
 [x] list view class, maybe a widget lib
 
 [x] replace all render() into draw(), aka sf::Drawable
+
+packets:
+
+Host								Guest
+		RoomBroadcastPacket(UDP)>
+		HeartbeatPacket<
+		GuestsInRoomPacket>
+		GameStartingPacket>
 

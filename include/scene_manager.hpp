@@ -67,7 +67,7 @@ class SceneRoomAsHost : public Scene {
     widget::Button mExitRoomBtn;
     widget::Button mStartGameBtn;
     widget::ListView<LocalStatus::GuestInfo> mPlayerListView;
-	widget::SplashScreen mGameRunningSplash;
+    widget::SplashScreen mGameRunningSplash;
 };
 
 class SceneRoomAsGuest : public Scene {
