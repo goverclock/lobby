@@ -98,8 +98,9 @@ bool SceneRoomAsHost::handle_event(sf::RenderWindow& w, sf::Event e) {
     mPlayerListView.setPosition({100.f, 100.f});
 
     if (e.is<sf::Event::FocusGained>() || e.is<sf::Event::Resized>() ||
-        e.is<sf::Event::MouseButtonPressed>())
+        e.is<sf::Event::MouseButtonPressed>()) {
         if (mGameRunningSplash.handle_event(w, e)) return true;
+    }
 
     if (e.is<sf::Event::MouseButtonPressed>()) {
         mExitRoomBtn.handle_event(w, e);
@@ -109,15 +110,29 @@ bool SceneRoomAsHost::handle_event(sf::RenderWindow& w, sf::Event e) {
     return true;
 }
 
+void SceneRoomAsHost::update(sf::RenderWindow& w) {
+    bool is_game_running = mLocalStatus.is_game_running();
+    static bool last_is_game_running = false;
+    if (last_is_game_running != is_game_running) {
+        mGameRunningSplash.handle_event(w, sf::Event::FocusGained());
+    }
+    last_is_game_running = is_game_running;
+}
+
 SceneRoomAsGuest::SceneRoomAsGuest(LocalStatus& local_status)
-    : Scene(local_status), mPlayerListView(local_status.get_guest_info_list()) {
+    : Scene(local_status),
+      mPlayerListView(local_status.get_guest_info_list()),
+      mGameRunningSplash("Game running..") {
     mExitRoomBtn.set_text("Exit room");
     mExitRoomBtn.on_click([&] {
         std::println("RoomAsGuest: clicked on Exit room");
         mLocalStatus.guest_exit_room();
     });
+    mGameRunningSplash.enable(false);
+
     Scene::register_widget(mExitRoomBtn);
     Scene::register_widget(mPlayerListView);
+    Scene::register_widget(mGameRunningSplash);
 }
 
 bool SceneRoomAsGuest::handle_event(sf::RenderWindow& w, sf::Event e) {
@@ -126,11 +141,27 @@ bool SceneRoomAsGuest::handle_event(sf::RenderWindow& w, sf::Event e) {
     float y = window_size.y - 200.f;
     mExitRoomBtn.setPosition({x, y});
     mPlayerListView.setPosition({100.f, 100.f});
+
+    if (e.is<sf::Event::FocusGained>() || e.is<sf::Event::Resized>() ||
+        e.is<sf::Event::MouseButtonPressed>())
+        if (mGameRunningSplash.handle_event(w, e)) return true;
+
     if (e.is<sf::Event::MouseButtonPressed>()) mExitRoomBtn.handle_event(w, e);
+
     return true;
 }
 
 SceneRoomAsGuest::~SceneRoomAsGuest() {};
+
+void SceneRoomAsGuest::update(sf::RenderWindow& w) {
+    bool is_game_running = mLocalStatus.is_game_running();
+    static bool last_is_game_running = false;
+    if (last_is_game_running != is_game_running) {
+        mGameRunningSplash.enable(is_game_running);
+        mGameRunningSplash.handle_event(w, sf::Event::FocusGained());
+    }
+    last_is_game_running = is_game_running;
+}
 
 SceneManager::SceneManager(LocalStatus& local_status)
     : mScene(std::make_unique<SceneLobby>(local_status)),
@@ -162,6 +193,7 @@ void SceneManager::handle_window_event() {
 void SceneManager::display() {
     update_scene_type();
     mWindow.clear(sf::Color(55, 55, 55, 0));
+    mScene->update(mWindow);
     mWindow.draw(*mScene);
     mWindow.display();
 }
@@ -186,9 +218,10 @@ void SceneManager::update_scene_type() {
             default:
                 UNREACHABLE();
         }
+
+        last_scene_type = current_scene_type;
+        // to run handle event on startup once, so widgets get the chance to
+        // initialize their position
+        mScene->handle_event(mWindow, sf::Event::FocusGained());
     }
-    last_scene_type = current_scene_type;
-    // to run handle event on startup once, so widgets get the chance to
-    // initialize their position
-    mScene->handle_event(mWindow, sf::Event::FocusGained());
 }

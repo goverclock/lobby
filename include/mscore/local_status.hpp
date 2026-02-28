@@ -58,6 +58,7 @@ class LocalStatus {
     const GuestInfoList& get_guest_info_list();
 
     void start_game();
+	bool is_game_running();
 
    private:
     // network
@@ -66,4 +67,6 @@ class LocalStatus {
     RoomEntryList mRoomEntryList;
     GuestInfoList mGuestInfoList;
     GameStatus mGameStatus;
+    // the game
+    bool mIsGameRunning = false;
 };

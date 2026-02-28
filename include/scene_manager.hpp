@@ -33,13 +33,18 @@ class SceneNode : public sf::Drawable, public widget::Responsive {
 
 class Scene : public sf::Drawable {
    public:
+    Scene(LocalStatus& local_status) : mLocalStatus(local_status) {};
     virtual ~Scene();
+
     void register_widget(widget::Widget& wgt);
     virtual bool handle_event(sf::RenderWindow& w, sf::Event e);
     virtual void draw(sf::RenderTarget& target,
                       sf::RenderStates states) const override;
+    // should be called before calling Scene::draw, to give a chance to update
+    // widgets even if there is no new event, try to make it effectless if no
+    // need to update!
+    virtual void update(sf::RenderWindow& w) {};
 
-    Scene(LocalStatus& local_status) : mLocalStatus(local_status) {};
     LocalStatus& mLocalStatus;
 
    private:
@@ -62,6 +67,7 @@ class SceneRoomAsHost : public Scene {
     SceneRoomAsHost(LocalStatus& local_status);
     ~SceneRoomAsHost();
     bool handle_event(sf::RenderWindow& w, sf::Event e) override;
+    void update(sf::RenderWindow& w) override;
 
    private:
     widget::Button mExitRoomBtn;
@@ -75,10 +81,12 @@ class SceneRoomAsGuest : public Scene {
     SceneRoomAsGuest(LocalStatus& local_status);
     ~SceneRoomAsGuest();
     bool handle_event(sf::RenderWindow& w, sf::Event e) override;
+    void update(sf::RenderWindow& w) override;
 
    private:
     widget::Button mExitRoomBtn;
     widget::ListView<LocalStatus::GuestInfo> mPlayerListView;
+    widget::SplashScreen mGameRunningSplash;
 };
 
 class SceneManager {

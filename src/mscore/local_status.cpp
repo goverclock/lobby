@@ -50,6 +50,12 @@ void LocalStatus::update() {
                 }
                 break;
             }
+            case lan::LanMessageUpdated::GameStarting: {
+                assert(mGameStatus ==
+                       GameStatus::RoomAsGuest);  // because this message is
+                                                  // send from host to guest
+                mIsGameRunning = true;
+            } break;
             case lan::LanMessageUpdated::HostDismissRoom: {
                 std::println("host dismissed room, returning to lobby");
                 guest_exit_room();
@@ -114,5 +120,8 @@ const LocalStatus::GuestInfoList& LocalStatus::get_guest_info_list() {
 // only host uses this method
 void LocalStatus::start_game() {
     mLanPeer.send_game_starting_packet();
-//    TODO();
+	mIsGameRunning = true;
+    //    TODO();
 }
+
+bool LocalStatus::is_game_running() { return mIsGameRunning; }
